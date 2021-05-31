@@ -88,3 +88,14 @@ class QueueSimulator(gym.Env):
         
     def render(self):
         return self
+
+    # Gets the total wait times from the last episode of the model.
+    def calc_average_wait_time(self):
+        total_wait = 0
+        last_episode = list(self.queues_total_wait_times_map.keys())[-1]
+
+        for i, queue in enumerate(self.queues_total_wait_times_map.get(last_episode)):
+            total_wait += sum(queue)
+        
+        return total_wait/3
+ 
