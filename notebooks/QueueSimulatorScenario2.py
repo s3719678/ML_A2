@@ -3,19 +3,23 @@ import gym
 from gym import spaces
 import copy
 
-class QueueSimulator(gym.Env):
+# Same as the QueueSimulator class, except the state now has to consider what its current queue is as well (so the calc_state has changed)
+class QueueSimulatorScenario2(gym.Env):
     def __init__(self, arrival_rates, mean_delay_requirements, queues_finished_timeslots):
-        super(QueueSimulator, self).__init__()
+        super(QueueSimulatorScenario2, self).__init__()
         self.arrival_rates = arrival_rates
         self.mean_delay_requirements = mean_delay_requirements
         self.current_timeslot = 1
         self.queues_finished_timeslots = queues_finished_timeslots # Need some reference to this so that I can use it again after reset
         self.queues = copy.deepcopy(queues_finished_timeslots)
-        self.scenario = 1
+        self.scenario = 2
         
         # Graph the total wait times for each queue, and at certain episode intervals, add the wait times to the map
         self.queues_total_wait_times = [[], [], []]
         self.queues_total_wait_times_map = {}
+
+        # Used when we look at state and if we need to add an additional +1 to the timeslots.
+        self.previous_queue = -1
         
         # Action Space is 3, because we have 3 queues to choose from
         self.action_space = spaces.Discrete(3)
@@ -26,9 +30,9 @@ class QueueSimulator(gym.Env):
    
     # Get total wait times for each queue (so how long a queue has been waiting for on a packet to send).
     # Remember, gets how long EACH packet has been waiting, so can be quite large since its every packet and not just the first.
-    def calc_state(self):
+    def calc_state(self, current_queue):
         # Use -1 as indicator for packet not arrived. Makes more sense to use something like np.inf, but easier to create q_table with -1 than np.inf
-        calc_state = [-1, -1, -1]
+        calc_state = [-1, -1, -1, current_queue]
         for i, queue in enumerate(self.queues):
             queue_total_wait = 0
             packet_arrived = False
@@ -44,7 +48,7 @@ class QueueSimulator(gym.Env):
 
     def step(self, action):
         # First, check how long each queue has been waiting for (this is the initial state)
-        current_state = self.calc_state()
+        current_state = self.calc_state(self.previous_queue)
         
         # Now calc reward
         # If the current_state is -1 then packet has no arrived, and we DO NOT WANT TO reward the model. We shouldnt reward it for no choice
@@ -66,13 +70,16 @@ class QueueSimulator(gym.Env):
             del self.queues[action][0]
         
         # Now get new state to send back
-        new_state = self.calc_state()
+        new_state = self.calc_state(action)
         
         done = False
         if all(len(queue) == 0 for queue in self.queues):
             done = True
         
+        if self.previous_queue != action and self.previous_queue != -1:
+            self.current_timeslot += 1
         self.current_timeslot += 1
+        self.previous_queue = action
         return new_state, reward, done, {}
         
     # Since q_learning expects state reset too, return the calc_state method
@@ -84,7 +91,7 @@ class QueueSimulator(gym.Env):
         self.current_timeslot = 0
         self.queues = copy.deepcopy(self.queues_finished_timeslots)
         self.queues_total_wait_times = [[], [], []]
-        return self.calc_state()
+        return self.calc_state(-1)
         
     def render(self):
         return self
