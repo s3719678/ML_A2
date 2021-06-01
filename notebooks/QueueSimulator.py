@@ -57,7 +57,7 @@ class QueueSimulator(gym.Env):
             
         # Reward when the best effort queue is chosen should be really high, but not as high as when mean_delay_requirement is met (100 reward)
         if action == 2:
-            reward = 90
+            reward = 95
         
         # Everytime you transmit a packet, keep track of how long that packet had to wait in queues_total_wait_times to graph later
         # also, only delete if that packet actually exists in the queue (i.e. its arrived, which is only at a certain timeslot onwards)
@@ -91,11 +91,11 @@ class QueueSimulator(gym.Env):
 
     # Gets the total wait times from the last episode of the model.
     def calc_average_wait_time(self):
-        total_wait = 0
+        average_queue_wait = []
         last_episode = list(self.queues_total_wait_times_map.keys())[-1]
 
         for i, queue in enumerate(self.queues_total_wait_times_map.get(last_episode)):
-            total_wait += sum(queue)
+            average_queue_wait.append(round(sum(queue)/len(queue),2))
         
-        return total_wait/3
+        return average_queue_wait
  

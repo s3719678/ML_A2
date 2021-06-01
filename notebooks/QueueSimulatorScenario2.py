@@ -20,6 +20,7 @@ class QueueSimulatorScenario2(gym.Env):
 
         # Used when we look at state and if we need to add an additional +1 to the timeslots.
         self.previous_queue = -1
+        self.total_queue_switches = 0
         
         # Action Space is 3, because we have 3 queues to choose from
         self.action_space = spaces.Discrete(3)
@@ -78,6 +79,7 @@ class QueueSimulatorScenario2(gym.Env):
         
         if self.previous_queue != action and self.previous_queue != -1:
             self.current_timeslot += 1
+            self.total_queue_switches += 1
         self.current_timeslot += 1
         self.previous_queue = action
         return new_state, reward, done, {}
@@ -91,6 +93,8 @@ class QueueSimulatorScenario2(gym.Env):
         self.current_timeslot = 0
         self.queues = copy.deepcopy(self.queues_finished_timeslots)
         self.queues_total_wait_times = [[], [], []]
+        self.previous_queue = -1
+        self.total_queue_switches = 0
         return self.calc_state(-1)
         
     def render(self):
