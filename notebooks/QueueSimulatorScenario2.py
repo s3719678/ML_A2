@@ -70,8 +70,10 @@ class QueueSimulatorScenario2(gym.Env):
             else:
                 reward = 99
 
-        if action == self.previous_queue:
-            reward = reward * 2
+        if action == self.previous_queue:   # Staying in the same queue should be somewhat rewarded
+            reward += 50
+        elif action != self.previous_queue and current_state[action] == -1: # Switching to a diff queue that is also empty should be punished
+            reward -= 100
         
         # Everytime you transmit a packet, keep track of how long that packet had to wait in queues_total_wait_times to graph later
         # also, only delete if that packet actually exists in the queue (i.e. its arrived, which is only at a certain timeslot onwards)
@@ -108,3 +110,17 @@ class QueueSimulatorScenario2(gym.Env):
         
     def render(self):
         return self
+
+    # Gets the total wait times from the last episode of the model.
+    def calc_average_wait_time(self):
+        average_queue_wait = []
+        last_episode = list(self.packets_total_wait_times_map.keys())[-1]
+
+        for i, queue in enumerate(self.packets_total_wait_times_map.get(last_episode)):
+            average_queue_wait.append(round(sum(queue)/len(queue),2))
+        
+        return average_queue_wait
+
+    # Manually update the map to put the episode in as an entry
+    def update_last_episode_stats(self, episode):
+        self.packets_total_wait_times_map.update( {episode: self.packets_total_wait_times} )
